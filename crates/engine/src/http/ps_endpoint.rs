@@ -7,18 +7,12 @@ use axum::{
 use florca_core::ps::RunningWorkflow;
 use reqwest::StatusCode;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::error;
 
 pub async fn get_running_workflows(
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
 ) -> axum::response::Result<Json<Vec<RunningWorkflow>>, PsError> {
-    let running_workflows = state
-        .read()
-        .await
-        .ps_service
-        .get_running_workflows()
-        .await?;
+    let running_workflows = state.ps_service.get_running_workflows().await?;
     Ok(Json(running_workflows))
 }
 

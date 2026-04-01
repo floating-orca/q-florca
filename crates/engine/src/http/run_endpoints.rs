@@ -8,25 +8,22 @@ use florca_core::run::{RunId, RunRequest};
 use reqwest::StatusCode;
 use serde_json::Value;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::error;
 
 pub async fn run_workflow(
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<RunRequest>,
 ) -> axum::response::Result<Json<RunId>, RunWorkflowError> {
-    let run_id = state.read().await.run_service.run_workflow(payload).await?;
+    let run_id = state.run_service.run_workflow(payload).await?;
     Ok(Json(run_id))
 }
 
 pub async fn invoke_child(
     Path(workflow_run): Path<RunId>,
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
     Json(invoke_child_args): Json<Value>,
 ) -> axum::response::Result<Json<Value>, RunWorkflowError> {
     let value = state
-        .read()
-        .await
         .run_service
         .invoke_child(workflow_run, invoke_child_args)
         .await?;

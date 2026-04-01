@@ -6,16 +6,13 @@ use florca_core::inspection::Inspection;
 use florca_core::run::LatestOrRunId;
 use reqwest::StatusCode;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::error;
 
 pub async fn get_inspection(
     Path(latest_or_run_id): Path<LatestOrRunId>,
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
 ) -> axum::response::Result<Json<Inspection>, GetInspectionError> {
     let inspection = state
-        .read()
-        .await
         .inspection_service
         .get_inspection(latest_or_run_id)
         .await?;

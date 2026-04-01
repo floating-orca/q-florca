@@ -5,16 +5,13 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use florca_core::driver::ReportReadinessRequest;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::error;
 
 pub async fn report_readiness(
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<ReportReadinessRequest>,
 ) -> axum::response::Result<(), ReportError> {
     state
-        .read()
-        .await
         .run_service
         .report_readiness(payload.run_id, payload.port)
         .await?;

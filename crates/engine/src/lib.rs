@@ -8,7 +8,6 @@ use repository::SqlxEngineRepository;
 use run::RunService;
 use std::sync::Arc;
 use tokio::signal::{self, unix::SignalKind};
-use tokio::sync::RwLock;
 use tracing::warn;
 
 mod deployer_client;
@@ -34,7 +33,7 @@ pub struct AppState {
     pub run_service: Arc<RunService>,
 }
 
-pub async fn init() -> Result<Arc<RwLock<AppState>>> {
+pub async fn init() -> Result<Arc<AppState>> {
     let engine_repository = Arc::new(SqlxEngineRepository::setup().await?);
     let process_manager = Arc::new(process::ProcessManager::new());
 
@@ -62,7 +61,7 @@ pub async fn init() -> Result<Arc<RwLock<AppState>>> {
         inspection_service,
         run_service,
     };
-    Ok(Arc::new(RwLock::new(state)))
+    Ok(Arc::new(state))
 }
 
 /// Waits for a SIGTERM signal and then shuts down the driver processes.

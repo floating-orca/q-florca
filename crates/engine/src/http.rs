@@ -3,7 +3,6 @@ use anyhow::Result;
 use axum::Router;
 use axum::routing::{delete, get, post};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 mod inspection_endpoint;
 mod kill_endpoint;
@@ -12,7 +11,7 @@ mod ps_endpoint;
 mod report_endpoint;
 mod run_endpoints;
 
-pub async fn serve(shared_state: Arc<RwLock<AppState>>) -> Result<()> {
+pub async fn serve(shared_state: Arc<AppState>) -> Result<()> {
     let app = Router::new()
         .route("/", post(run_endpoints::run_workflow))
         .route("/", get(ps_endpoint::get_running_workflows))
@@ -27,10 +26,9 @@ pub async fn serve(shared_state: Arc<RwLock<AppState>>) -> Result<()> {
         .with_state(shared_state.clone());
     let port = std::env::var("PORT").unwrap_or_else(|_| "8001".to_string());
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
+    let kill_service = shared_state.kill_service.clone();
     axum::serve(listener, app)
-        .with_graceful_shutdown(crate::shutdown_signal(
-            shared_state.read().await.kill_service.clone(),
-        ))
+        .with_graceful_shutdown(crate::shutdown_signal(kill_service))
         .await?;
     Ok(())
 }

@@ -5,19 +5,13 @@ use axum::response::{IntoResponse, Response};
 use florca_core::run::{AllOrRunId, RunId};
 use reqwest::StatusCode;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::error;
 
 pub async fn kill(
     Path(all_or_run_id): Path<AllOrRunId>,
-    State(state): State<Arc<RwLock<AppState>>>,
+    State(state): State<Arc<AppState>>,
 ) -> axum::response::Result<Json<Vec<RunId>>, KillError> {
-    let killed = state
-        .read()
-        .await
-        .kill_service
-        .kill_runs(all_or_run_id)
-        .await?;
+    let killed = state.kill_service.kill_runs(all_or_run_id).await?;
     Ok(Json(killed))
 }
 
