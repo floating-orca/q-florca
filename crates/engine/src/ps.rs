@@ -2,7 +2,6 @@ use crate::process::ProcessManager;
 use crate::repository::EngineRepository;
 use anyhow::Result;
 use florca_core::ps::RunningWorkflow;
-use futures::{StreamExt, stream};
 use std::{fmt::Debug, sync::Arc};
 
 #[derive(Debug, Clone)]
@@ -25,20 +24,16 @@ impl PsService {
 
 impl PsService {
     pub async fn get_running_workflows(&self) -> Result<Vec<RunningWorkflow>> {
-        let running_workflows = stream::iter(self.repository.get_runs_without_end_time().await?)
-            .filter_map(async |run| {
-                self.process_manager
-                    .driver_processes()
-                    .read()
-                    .await
-                    .get(&run.id)
-                    .map(|_p| RunningWorkflow {
-                        run_id: run.id,
-                        name: run.deployment_name,
-                    })
+        let runs = self.repository.get_runs_without_end_time().await?;
+        let driver_processes = self.process_manager.driver_processes().read().await;
+        let running_workflows = runs
+            .into_iter()
+            .filter(|run| driver_processes.contains_key(&run.id))
+            .map(|run| RunningWorkflow {
+                run_id: run.id,
+                name: run.deployment_name,
             })
-            .collect::<Vec<_>>()
-            .await;
+            .collect::<Vec<_>>();
         Ok(running_workflows)
     }
 }

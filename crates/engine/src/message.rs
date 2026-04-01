@@ -12,11 +12,15 @@ use serde_json::Value;
 #[derive(Debug)]
 pub struct MessageService {
     process_manager: Arc<ProcessManager>,
+    http_client: Client,
 }
 
 impl MessageService {
     pub fn new(process_manager: Arc<ProcessManager>) -> Self {
-        Self { process_manager }
+        Self {
+            process_manager,
+            http_client: Client::new(),
+        }
     }
 
     pub async fn send_message_to_workflow(
@@ -53,7 +57,8 @@ impl MessageService {
         } else {
             format!("http://localhost:{}/", &port)
         };
-        let response = Client::new()
+        let response = self
+            .http_client
             .post(url)
             .with_basic_auth_from_env()
             .json(&message)
@@ -97,7 +102,8 @@ impl MessageService {
         } else {
             format!("http://localhost:{}/", &port)
         };
-        let response = Client::new()
+        let response = self
+            .http_client
             .get(url)
             .with_basic_auth_from_env()
             .send()

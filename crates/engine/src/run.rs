@@ -16,12 +16,14 @@ use reqwest::Client;
 use serde_json::Value;
 use std::sync::Arc;
 use tempfile::{NamedTempFile, TempDir};
+use tracing::error;
 
 #[derive(Debug, Clone)]
 pub struct RunService {
     process_manager: Arc<ProcessManager>,
     repository: Arc<dyn EngineRepository>,
     deployer_client: Arc<dyn DeployerClient>,
+    http_client: Client,
 }
 
 impl RunService {
@@ -34,6 +36,7 @@ impl RunService {
             process_manager,
             repository,
             deployer_client,
+            http_client: Client::new(),
         }
     }
 
@@ -53,10 +56,12 @@ impl RunService {
         );
         tokio::spawn(async move {
             let temporary_directory_path = temporary_directory.path();
-            driver_manager
+            if let Err(err) = driver_manager
                 .run_workflow(run_request, temporary_directory_path)
                 .await
-                .unwrap();
+            {
+                error!(run = run_id.to_string(), ?err, "Driver task failed");
+            }
         });
         Ok(run_id)
     }
@@ -81,7 +86,8 @@ impl RunService {
             .await
             .context("No driver process found for run")?;
         let url = format!("http://localhost:{port}/invoke");
-        let response = Client::new()
+        let response = self
+            .http_client
             .post(url)
             .with_basic_auth_from_env()
             .json(&invoke_child_args)

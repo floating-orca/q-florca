@@ -25,7 +25,7 @@ impl MessageCommand {
     /// This function will return an error if the request to the engine fails, the engine returns an error, or the response cannot be parsed.
     pub fn execute(self) -> Result<()> {
         let url = EngineUrl::path(&[&self.run_id.to_string()]);
-        let client = Client::builder().timeout(Duration::from_secs(60)).build()?;
+        let client = Client::builder().timeout(Duration::from_mins(1)).build()?;
         let response = client
             .post(url)
             .with_basic_auth_from_env()

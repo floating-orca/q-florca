@@ -111,7 +111,7 @@ fn build_form(zip_path: &Path, deployment_name: &DeploymentName, force: bool) ->
 fn send(form: Form) -> Result<Response> {
     let url = DeployerUrl::base();
     let response = Client::builder()
-        .timeout(Duration::from_secs(60 * 60))
+        .timeout(Duration::from_hours(1))
         .build()?
         .post(url)
         .with_basic_auth_from_env()

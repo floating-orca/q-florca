@@ -18,7 +18,7 @@ impl DeleteCommand {
     pub fn execute(self) -> Result<()> {
         let url = DeployerUrl::path(&[&self.deployment_name]);
         let response = Client::builder()
-            .timeout(Duration::from_secs(60 * 60))
+            .timeout(Duration::from_hours(1))
             .build()?
             .delete(url)
             .with_basic_auth_from_env()

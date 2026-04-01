@@ -97,7 +97,7 @@ impl KnClient for KnClientImpl {
             );
         }
 
-        println!("Knative function {kn_function_qualifier} deployed successfully",);
+        println!("Knative function {kn_function_qualifier} deployed successfully");
 
         let url = get_url_for_kn_function(kn_function_qualifier).await?;
         Ok(KnUrl(url))
