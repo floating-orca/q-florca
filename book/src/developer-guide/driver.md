@@ -58,9 +58,9 @@ export const run = async (invokeArgs: InvokeArgs): Promise<Payload> => {
 
 const invoke = async (
   invokeArgs: InvokeArgs,
-): Promise<[number, ResponseBody]> => {
+): Promise<[InvocationId, ResponseBody]> => {
   const entry = findLookupEntry(invokeArgs.functionName);
-  const id = await createInvocation(invokeArgs);
+  const id = crypto.randomUUID();
   let response: ResponseBody;
   if (entry.kind === "aws") {
     response = await invokeAwsFunction(entry, invokeArgs, id);
@@ -77,7 +77,7 @@ const invoke = async (
 export async function invokePluginFunction(
   entry: LookupEntry,
   invokeArgs: InvokeArgs,
-  id: number,
+  id: InvocationId,
 ): Promise<ResponseBody> {
   const plugin = await import( // import <my-plugin>.ts
     resolve(invokeArgs.deploymentPath, entry.location)

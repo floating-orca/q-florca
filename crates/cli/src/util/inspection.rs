@@ -201,7 +201,7 @@ Workflow: sequential-map (09:52:01.908+02:00) (09:52:04.339+02:00) (PT2.431S) 2
             input: json!(2),
             output: Some(json!("1, 2")),
             root: Some(InspectionEntry {
-                invocation_id: InvocationId::new(1),
+                invocation_id: InvocationId::new(),
                 function_name: "start".into(),
                 start_time: DateTime::parse_from_rfc3339("2023-10-01T09:52:02.038+02:00")
                     .unwrap()
@@ -218,7 +218,7 @@ Workflow: sequential-map (09:52:01.908+02:00) (09:52:04.339+02:00) (PT2.431S) 2
                 ),
                 children: Vec::new(),
                 next: Some(Box::new(InspectionEntry {
-                    invocation_id: InvocationId::new(2),
+                    invocation_id: InvocationId::new(),
                     function_name: "sequentialMap".into(),
                     start_time: DateTime::parse_from_rfc3339("2023-10-01T09:52:02.069+02:00")
                         .unwrap()
@@ -233,7 +233,7 @@ Workflow: sequential-map (09:52:01.908+02:00) (09:52:04.339+02:00) (PT2.431S) 2
                     output: Some(json!({"next": "join", "payload": [1, 2]})),
                     children: vec![
                         InspectionEntry {
-                            invocation_id: InvocationId::new(3),
+                            invocation_id: InvocationId::new(),
                             function_name: "addOne".into(),
                             start_time: DateTime::parse_from_rfc3339(
                                 "2023-10-01T09:52:02.083+02:00",
@@ -252,7 +252,7 @@ Workflow: sequential-map (09:52:01.908+02:00) (09:52:04.339+02:00) (PT2.431S) 2
                             next: None,
                         },
                         InspectionEntry {
-                            invocation_id: InvocationId::new(4),
+                            invocation_id: InvocationId::new(),
                             function_name: "addOne".into(),
                             start_time: DateTime::parse_from_rfc3339(
                                 "2023-10-01T09:52:03.141+02:00",
@@ -272,7 +272,7 @@ Workflow: sequential-map (09:52:01.908+02:00) (09:52:04.339+02:00) (PT2.431S) 2
                         },
                     ],
                     next: Some(Box::new(InspectionEntry {
-                        invocation_id: InvocationId::new(5),
+                        invocation_id: InvocationId::new(),
                         function_name: "join".into(),
                         start_time: DateTime::parse_from_rfc3339("2023-10-01T09:52:04.267+02:00")
                             .unwrap()

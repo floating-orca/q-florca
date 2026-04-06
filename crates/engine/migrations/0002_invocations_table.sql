@@ -1,7 +1,7 @@
 CREATE TABLE invocations (
-  id SERIAL PRIMARY KEY,
-  parent INTEGER,
-  predecessor INTEGER,
+  id UUID PRIMARY KEY,
+  parent UUID,
+  predecessor UUID,
   run_id INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
   function_name TEXT NOT NULL,
   input JSONB NOT NULL,

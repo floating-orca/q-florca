@@ -4,7 +4,7 @@ from urllib import request, error
 
 
 def send_message(
-    message: Any, receiving_invocation: Optional[int], context: Dict[str, Any]
+    message: Any, receiving_invocation: Optional[str], context: Dict[str, Any]
 ) -> Any:
     url = context["workflowMessageUrl"]
     if receiving_invocation is not None:

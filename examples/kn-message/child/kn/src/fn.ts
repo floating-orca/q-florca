@@ -1,6 +1,6 @@
 export async function sendMessage(
   message: any,
-  receivingInvocation: number | null,
+  receivingInvocation: string | null,
   context: any,
 ): Promise<any> {
   let url = context.workflowMessageUrl;

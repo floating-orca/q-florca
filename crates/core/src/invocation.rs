@@ -1,13 +1,10 @@
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
 use crate::{function::FunctionName, run::RunId};
 use chrono::{DateTime, Utc};
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use ts_rs::TS;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct InvocationEntity {
@@ -24,50 +21,28 @@ pub struct InvocationEntity {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, sqlx::Type,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    Display,
+    sqlx::Type,
 )]
-#[sqlx(transparent, type_name = "SERIAL")]
+#[sqlx(transparent, type_name = "UUID")]
 #[derive(TS)]
-pub struct InvocationId(i32);
+pub struct InvocationId(Uuid);
 
 impl InvocationId {
-    /// # Panics
-    ///
-    /// Panics if the ID is less than 1
+    /// Create a new invocation ID with a random UUID
     #[must_use]
-    pub fn new(id: i32) -> Self {
-        assert!((id >= 1), "Invocation ID must be greater than 0");
-        Self(id)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("{0} is not a valid invocation ID")]
-pub struct ParseInvocationIdError(String);
-
-impl TryFrom<&str> for InvocationId {
-    type Error = ParseInvocationIdError;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        let value = i32::from_str(s).map_err(|_| ParseInvocationIdError(s.into()))?;
-        if value < 1 {
-            Err(ParseInvocationIdError(s.into()))
-        } else {
-            Ok(Self(value))
-        }
-    }
-}
-
-impl FromStr for InvocationId {
-    type Err = ParseInvocationIdError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_from(s)
-    }
-}
-
-impl Display for InvocationId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
     }
 }

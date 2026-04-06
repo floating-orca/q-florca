@@ -13,7 +13,7 @@ export default async (
     });
   }
 
-  let ids: number[];
+  let ids: string[];
 
   // Configure a handler to collect the messages from the sibling invocations
   const messages: Promise<string[]> = new Promise((resolve) => {

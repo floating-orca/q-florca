@@ -1,6 +1,6 @@
 /**
  * @param {any} message
- * @param {number|null} receivingInvocation
+ * @param {string|null} receivingInvocation
  * @param {any} context
  * @returns {Promise<any>}
  */

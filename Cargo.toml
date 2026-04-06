@@ -21,6 +21,7 @@ sqlx = { version = "0.8", features = [
   "tls-native-tls",
   "postgres",
   "chrono",
+  "uuid",
 ] }
 regex = "1.12.3"
 secrecy = "0.10.3"
@@ -31,7 +32,8 @@ tokio = { version = "1.50.0", features = ["full", "tracing"] }
 toml = "1.1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-ts-rs = { version = "12.0.1", features = ["serde-json-impl"] }
+ts-rs = { version = "12.0.1", features = ["serde-json-impl", "uuid-impl"] }
+uuid = { version = "1.23.0", features = ["v4", "serde"] }
 walkdir = "2.5.0"
 zip = "8.4.0"
 zip-extensions = "0.14.1"

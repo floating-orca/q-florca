@@ -2,9 +2,9 @@ export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
 export type PluginContext = {
   authorizationHeader: string;
-  id: number;
+  id: string;
   params: any;
-  parentId: number | null;
+  parentId: string | null;
   workflowMessageUrl: string;
   logEvent: (level: LogLevel, message: string, data?: any) => void;
   onMessage: (fn: ((message: any) => any) | null) => void;
@@ -14,9 +14,9 @@ export type PluginContext = {
 
 export type RemoteContext = {
   authorizationHeader: string;
-  id: number;
+  id: string;
   params: any;
-  parentId: number | null;
+  parentId: string | null;
   workflowMessageUrl: string;
 };
 
@@ -43,7 +43,7 @@ export type Next =
 
 export async function sendMessage(
   message: any,
-  receivingInvocation: number | null,
+  receivingInvocation: string | null,
   context: PluginContext,
 ): Promise<any> {
   let url = context.workflowMessageUrl;

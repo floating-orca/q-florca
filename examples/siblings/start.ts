@@ -9,7 +9,7 @@ export default async (
 
   // Collect the IDs of the sibling invocations.
   // Only respond once all IDs have been collected.
-  const ids: number[] = [];
+  const ids: string[] = [];
   const { promise, resolve } = Promise.withResolvers<void>();
   context.onMessage(async (id) => {
     ids.push(id);

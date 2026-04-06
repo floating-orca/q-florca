@@ -22,13 +22,13 @@ Other functions can then send messages to a function that has a message handler 
 
 - `sendMessageToWorkflow(message: any, context: PluginContext)`: Sends a workflow-level message, not targeting a specific plugin function.
 - `sendMessageToParent(message: any, context: PluginContext)`: Sends a message to the parent function.
-- `sendMessage(message: any, receivingInvocation: number, context: PluginContext)`: Sends a message to an arbitrary plugin function, identified by its invocation number.
+- `sendMessage(message: any, receivingInvocation: InvocationId, context: PluginContext)`: Sends a message to an arbitrary plugin function, identified by its invocation ID.
 
-### The invocation number
+### The invocation ID
 
-Each function invocation has a unique number that can be used to identify it. This number is passed to the function as part of the `requestBody.context` object, specifically as `requestBody.context.id`. Furthermore, child functions receive the invocation number of their parent function as `requestBody.context.parentId`.
+Each function invocation has a unique UUID-based ID that can be used to identify it. This ID is passed to the function as part of the `requestBody.context` object, specifically as `requestBody.context.id`. Furthermore, child functions receive the invocation ID of their parent function as `requestBody.context.parentId`.
 
-If you want to send a message to a function that is not its parent, you need to know the invocation number of the target function. There's no direct way to find another function's invocation number, so you need to forward this information to the function in some way. See [Techniques](#techniques) for more information.
+If you want to send a message to a function that is not its parent, you need to know the invocation ID of the target function. There's no direct way to find another function's invocation ID, so you need to forward this information to the function in some way. See [Techniques](#techniques) for more information.
 
 ## Example
 
@@ -86,7 +86,7 @@ See the [Security](./security.md) chapter for more information.
 
 `sendMessage` is the same except that it doesn't insert the `parentId` into the URL but you have to provide the `receivingInvocation` as an argument to the function.
 
-`sendMessageToWorkflow` is similar but doesn't require an invocation number and instead sends a request to the workflow-level message handler.
+`sendMessageToWorkflow` is similar but doesn't require an invocation ID and instead sends a request to the workflow-level message handler.
 This means that if you skip the last component of the URL (the `receivingInvocation`), the message will be sent to the workflow-level message handler instead of a specific function.
 
 All required information (`workflowMessageUrl`, `authorizationHeader`, `parentId`) is not only available on the plugin function-specific `PluginContext`, but also on the context passed to [AWS Lambda functions](./aws-lambda-functions.md) and [Knative functions](./knative-functions.md).
@@ -101,11 +101,11 @@ Sending messages as well as spawning child functions are asynchronous operations
 
 The rather new `Promise.withResolvers` function could be useful when you need to resolve a promise from outside of the promise's scope, for example when you need to resolve a promise from within a message handler.
 
-### Exchanging invocation numbers
+### Exchanging invocation IDs
 
 #### Let child functions communicate with each other
 
-To let child functions communicate with each other, we first need them to know each other's invocation numbers. This can be achieved by letting the parent function collect the invocation numbers of its children and then distribute them to the children.
+To let child functions communicate with each other, we first need them to know each other's invocation IDs. This can be achieved by letting the parent function collect the invocation IDs of its children and then distribute them to the children.
 
 The following example demonstrates how the 5 spawned child functions report their IDs to the parent function and receive the IDs of their siblings. Once the child functions receive the IDs of all their siblings, they send their own ID to each sibling. Each sibling waits for all other siblings to send their IDs before returning the sum of all received IDs.
 

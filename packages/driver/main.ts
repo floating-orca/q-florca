@@ -72,7 +72,7 @@ app.post("/", async (c: Context) => {
 });
 
 app.post("/:id", async (c: Context) => {
-  const invocationId: InvocationId = parseInt(c.req.param("id")!);
+  const invocationId = c.req.param("id") as InvocationId;
   const message = await c.req.json();
   const messageHandler = globalThis.MessageHandlers.get(invocationId);
   let ret = {};
@@ -97,7 +97,7 @@ app.get("/", async (c: Context) => {
 });
 
 app.get("/:id", async (c: Context) => {
-  const invocationId: InvocationId = parseInt(c.req.param("id")!);
+  const invocationId = c.req.param("id") as InvocationId;
   const messageHandler = globalThis.MessageHandlers.get(invocationId);
   let ret = "No handler registered";
   if (messageHandler) {

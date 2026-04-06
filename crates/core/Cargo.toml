@@ -16,6 +16,7 @@ thiserror = { workspace = true }
 toml = { workspace = true }
 tracing = { workspace = true }
 ts-rs = { workspace = true }
+uuid = { workspace = true }
 
 [lints.clippy]
 pedantic = "warn"

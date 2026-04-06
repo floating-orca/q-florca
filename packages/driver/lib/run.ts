@@ -5,6 +5,7 @@ import type { Payload, ResponseBody } from "@florca/fn";
 import type {
   DeploymentName,
   FunctionName,
+  InvocationId,
   JsonValue,
   LookupEntry,
   RunId,
@@ -26,14 +27,14 @@ export type InvokeArgs = {
   functionName: FunctionName;
   input: JsonValue;
   params: JsonValue;
-  parent: number | null;
-  predecessor: number | null;
+  parent: InvocationId | null;
+  predecessor: InvocationId | null;
 };
 
 type QueuedInvocation = {
-  tempId: number;
-  parent: number | null;
-  predecessor: number | null;
+  id: InvocationId;
+  parent: InvocationId | null;
+  predecessor: InvocationId | null;
   runId: RunId;
   functionName: string;
   input: string;
@@ -43,8 +44,6 @@ type QueuedInvocation = {
   endTime: string;
 };
 
-const TEMP_ID_START = 0;
-let tempIdCounter = TEMP_ID_START;
 const writeQueue: QueuedInvocation[] = [];
 
 export const run = async (invokeArgs: InvokeArgs): Promise<Payload> => {
@@ -80,9 +79,9 @@ export const run = async (invokeArgs: InvokeArgs): Promise<Payload> => {
 
 const invoke = async (
   invokeArgs: InvokeArgs,
-): Promise<[number, ResponseBody]> => {
+): Promise<[InvocationId, ResponseBody]> => {
   const entry = findLookupEntry(invokeArgs.functionName);
-  const invocationId = ++tempIdCounter;
+  const invocationId = crypto.randomUUID();
   const startTime = new Date().toISOString();
 
   logEvent("DEBUG", "Invoking", {
@@ -111,7 +110,7 @@ const invoke = async (
   });
 
   writeQueue.push({
-    tempId: invocationId,
+    id: invocationId,
     parent: invokeArgs.parent,
     predecessor: invokeArgs.predecessor,
     runId: invokeArgs.runId,
@@ -131,19 +130,6 @@ export async function flushWriteQueue(): Promise<void> {
   using client = await globalThis.Pool.connect();
   await client.queryArray("begin");
   try {
-    // Pre-allocate real IDs
-    const { rows: idRows } = await client.queryObject<{ nextval: number }>(
-      `SELECT nextval('invocations_id_seq')::int FROM generate_series(1, $1)`,
-      [writeQueue.length],
-    );
-
-    // Build temp ID -> real ID map
-    const tempToReal = new Map<number, number>();
-    for (let i = TEMP_ID_START; i < writeQueue.length; i++) {
-      tempToReal.set(writeQueue[i].tempId, idRows[i].nextval);
-    }
-
-    // Bulk insert in batches with all references resolved
     const BATCH_SIZE = 1000;
     const PARAMS_COUNT = 10;
     for (let start = 0; start < writeQueue.length; start += BATCH_SIZE) {
@@ -152,9 +138,9 @@ export async function flushWriteQueue(): Promise<void> {
       const placeholders = batch.map((inv, i) => {
         const base = i * PARAMS_COUNT;
         values.push(
-          idRows[start + i].nextval,
-          resolveId(inv.parent, tempToReal),
-          resolveId(inv.predecessor, tempToReal),
+          inv.id,
+          inv.parent,
+          inv.predecessor,
           inv.runId,
           inv.functionName,
           inv.input,
@@ -180,14 +166,6 @@ export async function flushWriteQueue(): Promise<void> {
     await client.queryArray("rollback");
     throw e;
   }
-}
-
-function resolveId(
-  id: number | null,
-  tempToReal: Map<number, number>,
-): number | null {
-  if (id === null) return null;
-  return tempToReal.has(id) ? (tempToReal.get(id) ?? null) : id;
 }
 
 function findLookupEntry(functionName: string): LookupEntry {

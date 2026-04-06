@@ -45,7 +45,7 @@ The response will look something like this:
   "startTime": "2025-06-28T15:54:05.693274Z",
   "endTime": "2025-06-28T15:54:58.943966Z",
   "root": {
-    "invocationId": 25,
+    "invocationId": "f847e5a5-9b7b-4ba0-8f4d-c0e6d2720a17",
     "functionName": "start",
     "input": null,
     "params": null,
