@@ -4,8 +4,9 @@ use crate::{error::GetInspectionError, repository::GetRunError};
 use anyhow::{Context, Result};
 use florca_core::inspection::{Inspection, InspectionEntry, RunStatus};
 use florca_core::invocation::InvocationEntity;
+use florca_core::invocation::InvocationId;
 use florca_core::run::{LatestOrRunId, RunEntity};
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -51,14 +52,8 @@ impl InspectionService {
     async fn build_inspection(&self, run: RunEntity) -> Result<Inspection, GetInspectionError> {
         let status = self.status_of_run(&run).await?;
         let invocations = self.repository.get_invocations(run.id).await?;
-        let mut root_entry: VecDeque<InspectionEntry> = VecDeque::new();
-        let root_invocation = invocations
-            .iter()
-            .find(|invocation| invocation.parent.is_none() && invocation.predecessor.is_none());
-        if let Some(root_invocation) = root_invocation {
-            build_inspection_recursively(&invocations, root_invocation, &mut root_entry)?;
-        }
-        let inspection = Inspection::new(run, root_entry.into_iter().last(), status);
+        let root_entry = build_inspection_root(&invocations)?;
+        let inspection = Inspection::new(run, root_entry, status);
         Ok(inspection)
     }
 
@@ -83,28 +78,74 @@ impl InspectionService {
     }
 }
 
-fn build_inspection_recursively(
-    invocations: &[InvocationEntity],
-    invocation: &InvocationEntity,
-    entries: &mut VecDeque<InspectionEntry>,
-) -> Result<()> {
-    let mut child_entries: VecDeque<InspectionEntry> = VecDeque::new();
-    let children = invocations
-        .iter()
-        .filter(|l| l.parent.is_some_and(|p| p == invocation.id));
-    for c in children {
-        build_inspection_recursively(invocations, c, &mut child_entries)?;
+fn build_inspection_root(invocations: &[InvocationEntity]) -> Result<Option<InspectionEntry>> {
+    let mut by_id: HashMap<InvocationId, &InvocationEntity> =
+        HashMap::with_capacity(invocations.len());
+    let mut children_by_parent: HashMap<InvocationId, Vec<InvocationId>> = HashMap::new();
+    let mut next_by_predecessor: HashMap<InvocationId, InvocationId> = HashMap::new();
+    let mut root_invocation_id = None;
+
+    for invocation in invocations {
+        by_id.insert(invocation.id, invocation);
+
+        if invocation.parent.is_none()
+            && invocation.predecessor.is_none()
+            && root_invocation_id.is_none()
+        {
+            root_invocation_id = Some(invocation.id);
+        }
+
+        if let Some(parent_id) = invocation.parent {
+            children_by_parent
+                .entry(parent_id)
+                .or_default()
+                .push(invocation.id);
+        }
+
+        if let Some(predecessor_id) = invocation.predecessor {
+            next_by_predecessor.insert(predecessor_id, invocation.id);
+        }
     }
 
-    let mut next_entry: VecDeque<InspectionEntry> = VecDeque::new();
-    let next = invocations
-        .iter()
-        .find(|l| l.predecessor.is_some_and(|p| p == invocation.id));
-    if let Some(n) = next {
-        build_inspection_recursively(invocations, n, &mut next_entry)?;
-    }
-    let next = next_entry.pop_front().map(Box::new);
-    let entry = InspectionEntry::new(invocation, child_entries.into_iter().collect(), next);
-    entries.push_back(entry);
-    Ok(())
+    root_invocation_id
+        .map(|invocation_id| {
+            build_inspection_entry(
+                invocation_id,
+                &by_id,
+                &children_by_parent,
+                &next_by_predecessor,
+            )
+        })
+        .transpose()
+}
+
+fn build_inspection_entry(
+    invocation_id: InvocationId,
+    by_id: &HashMap<InvocationId, &InvocationEntity>,
+    children_by_parent: &HashMap<InvocationId, Vec<InvocationId>>,
+    next_by_predecessor: &HashMap<InvocationId, InvocationId>,
+) -> Result<InspectionEntry> {
+    let invocation = by_id
+        .get(&invocation_id)
+        .copied()
+        .context("missing invocation while building inspection graph")?;
+
+    let child_entries = children_by_parent
+        .get(&invocation_id)
+        .into_iter()
+        .flatten()
+        .map(|child_id| {
+            build_inspection_entry(*child_id, by_id, children_by_parent, next_by_predecessor)
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let next_entry = next_by_predecessor
+        .get(&invocation_id)
+        .map(|next_id| {
+            build_inspection_entry(*next_id, by_id, children_by_parent, next_by_predecessor)
+                .map(Box::new)
+        })
+        .transpose()?;
+
+    Ok(InspectionEntry::new(invocation, child_entries, next_entry))
 }
