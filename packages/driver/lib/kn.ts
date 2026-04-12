@@ -1,7 +1,8 @@
 import type { RemoteRequestBody, ResponseBody } from "@florca/fn";
 import type { InvocationId, LookupEntry } from "@florca/types";
 import type { InvokeArgs } from "./run.ts";
-import { AUTHORIZATION_HEADER, getEngineUrlForAccessFromKn } from "./mod.ts";
+import { getAuthorizationHeader } from "./auth.ts";
+import * as env from "./env.ts";
 
 export const invokeKnFunction = async (
   entry: LookupEntry,
@@ -9,20 +10,20 @@ export const invokeKnFunction = async (
   invocationId: InvocationId,
 ): Promise<ResponseBody> => {
   const baseUrl = entry.location;
-  const funcPort = Deno.env.get("FUNC_PORT") ?? "80";
+  const funcPort = env.getKnFuncPort();
   const url = `${baseUrl}:${funcPort}`;
 
-  const funcBasicAuth = Deno.env.get("FUNC_BASIC_AUTH");
+  const funcBasicAuth = env.getKnFuncBasicAuth();
 
   const body: RemoteRequestBody = {
     payload: invokeArgs.input,
     context: {
-      authorizationHeader: AUTHORIZATION_HEADER,
+      authorizationHeader: getAuthorizationHeader(),
       id: invocationId,
       params: invokeArgs.params,
       parentId: invokeArgs.parent,
       workflowMessageUrl:
-        `${getEngineUrlForAccessFromKn()}/${invokeArgs.runId}`,
+        `${env.getEngineUrlForAccessFromKn()}/${invokeArgs.runId}`,
     },
   };
 

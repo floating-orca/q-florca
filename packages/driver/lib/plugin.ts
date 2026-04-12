@@ -11,7 +11,8 @@ import type {
 import type { InvocationId, LookupEntry, PluginLogEvent } from "@florca/types";
 import { type InvokeArgs, run } from "./run.ts";
 import type { DriverState } from "./driver_state.ts";
-import { AUTHORIZATION_HEADER, getEngineUrl } from "./mod.ts";
+import { getAuthorizationHeader } from "./auth.ts";
+import * as env from "./env.ts";
 
 export async function invokePluginFunction(
   entry: LookupEntry,
@@ -25,11 +26,11 @@ export async function invokePluginFunction(
   const body: PluginRequestBody = {
     payload: invokeArgs.input,
     context: {
-      authorizationHeader: AUTHORIZATION_HEADER,
+      authorizationHeader: getAuthorizationHeader(),
       id: invocationId,
       params: invokeArgs.params,
       parentId: invokeArgs.parent,
-      workflowMessageUrl: `${getEngineUrl()}/${invokeArgs.runId}`,
+      workflowMessageUrl: `${env.getEngineUrl()}/${invokeArgs.runId}`,
       logEvent: (level: LogLevel, message: string, data?: any) => {
         const pluginLogEvent: PluginLogEvent = {
           level,

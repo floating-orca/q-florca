@@ -9,6 +9,7 @@ import {
 import { type InvokeArgs, run } from "./lib/run.ts";
 import { Pool } from "@db/postgres";
 import type { DriverState } from "./lib/driver_state.ts";
+import * as env from "./lib/env.ts";
 
 if (Deno.args.length !== 1) {
   throw new Error("Expected exactly one argument");
@@ -16,10 +17,7 @@ if (Deno.args.length !== 1) {
 const driverArgs: DriverArgs = JSON.parse(Deno.args[0]);
 
 const POOL_CONNECTIONS = 10;
-const databaseUrl = Deno.env.get("ENGINE_DATABASE_URL");
-if (!databaseUrl) {
-  throw new Error("ENGINE_DATABASE_URL environment variable must be set");
-}
+const databaseUrl = env.getEngineDatabaseUrl();
 const pool = new Pool(
   databaseUrl,
   POOL_CONNECTIONS,

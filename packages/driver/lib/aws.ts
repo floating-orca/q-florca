@@ -9,7 +9,9 @@ import {
 import { Buffer } from "node:buffer";
 import type { InvocationId, LookupEntry } from "@florca/types";
 import type { InvokeArgs } from "./run.ts";
-import { AUTHORIZATION_HEADER, getEngineUrl, logEvent } from "./mod.ts";
+import { logEvent } from "./mod.ts";
+import { getAuthorizationHeader } from "./auth.ts";
+import * as env from "./env.ts";
 
 export const invokeAwsFunction = async (
   entry: LookupEntry,
@@ -20,11 +22,11 @@ export const invokeAwsFunction = async (
   const body: RemoteRequestBody = {
     payload: invokeArgs.input,
     context: {
-      authorizationHeader: AUTHORIZATION_HEADER,
+      authorizationHeader: getAuthorizationHeader(),
       id: invocationId,
       params: invokeArgs.params,
       parentId: invokeArgs.parent,
-      workflowMessageUrl: `${getEngineUrl()}/${invokeArgs.runId}`,
+      workflowMessageUrl: `${env.getEngineUrl()}/${invokeArgs.runId}`,
     },
   };
 
