@@ -5,7 +5,7 @@
 - `POST /` - Run a workflow
 - `GET /` - List all running workflows
 - `POST /ready` - Report readiness of the driver
-- `GET /{run}/status` - Get the status of a workflow run, including function invocations' inputs and outputs
+- `GET /{run}/inspection` - Inspect a workflow run, including function invocations' inputs and outputs
 - `POST /{run}/invoke` - Invoke a child function (from within a remote function)
 - `POST /{run}/{id}` - Send a message to a function invocation's message handler
 - `GET /{run}/{id}` - Retrieve HTML from a function invocation's message handler
@@ -13,22 +13,22 @@
 - `GET /{run}` - Retrieve HTML from the workflow's message handler
 - `DELETE /{run}` - Kill a workflow run
 
-### Example: Retrieve the status of a workflow run
+### Example: Inspect a workflow run
 
 The following example shows how to retrieve details about the latest workflow run:
 
 ```bash
-curl --location 'http://engine.florca.localhost:8080/latest/status' \
+curl --location 'http://engine.florca.localhost:8080/latest/inspection' \
   --header 'Authorization: Basic <BASE64-ENCODED-BASIC-AUTH-CREDENTIALS>' \
   --silent
 ```
 
 _Run `echo -n '<BASIC_AUTH_USERNAME>:<BASIC_AUTH_PASSWORD>' | base64` to get the base64-encoded credentials._
 
-Instead of `latest`, you can also pass a specific run ID to get the status of that run. For example, if you want to check the status of a run with ID `5`, you can do:
+Instead of `latest`, you can also pass a specific run ID to get the details of that run. For example, if you want to check the details of a run with ID `5`, you can do:
 
 ```bash
-curl --location 'http://engine.florca.localhost:8080/5/status' \
+curl --location 'http://engine.florca.localhost:8080/5/inspection' \
   --header 'Authorization: Basic <BASE64-ENCODED-BASIC-AUTH-CREDENTIALS>' \
   --silent
 ```

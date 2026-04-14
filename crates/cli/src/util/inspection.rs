@@ -12,7 +12,7 @@ use serde_json::Value;
 ///
 /// This function will return an error if the request to the server fails, the server returns an error, or the response cannot be parsed.
 pub fn get_inspection(latest_or_run_id: &LatestOrRunId) -> Result<Inspection> {
-    let url = EngineUrl::path(&[&latest_or_run_id.to_string(), "status"]);
+    let url = EngineUrl::path(&[&latest_or_run_id.to_string(), "inspection"]);
     let response = Client::new().get(url).with_basic_auth_from_env().send()?;
     if let Err(e) = response.error_for_status_ref() {
         let text = response.text()?;
