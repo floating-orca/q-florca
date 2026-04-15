@@ -13,8 +13,8 @@ pub fn spawn_driver(
     let args = build_args(run_request, deployment_path, run_id, deno_lock_path)?;
     let child = tokio::process::Command::new("deno")
         .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .env("DENO_TLS_CA_STORE", "system")
         .spawn()?;
     Ok(child)

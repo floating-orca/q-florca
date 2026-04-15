@@ -14,10 +14,6 @@ export function getEngineUrlForAccessFromKn(): string {
   return getRequired("ENGINE_URL_FOR_ACCESS_FROM_KN");
 }
 
-export function getEngineDatabaseUrl(): string {
-  return getRequired("ENGINE_DATABASE_URL");
-}
-
 export function getKnFuncPort(): string {
   return Deno.env.get("FUNC_PORT") ?? "80";
 }

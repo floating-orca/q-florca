@@ -5,12 +5,13 @@ import type {
   ReportReadinessRequest,
   RunId,
 } from "@florca/types";
-import { flushWriteQueue, run } from "./run.ts";
+import { run } from "./run.ts";
 import { resolve } from "@std/path";
 import { getPluginFilePath, namesOfShippedPlugins } from "./functions/mod.ts";
 import type { DriverState } from "./driver_state.ts";
 import { getAuthorizationHeader } from "./auth.ts";
 import * as env from "./env.ts";
+import type { EventSink } from "./event_sink.ts";
 
 export async function gatherLookupEntries(
   deploymentPath: string,
@@ -83,16 +84,18 @@ export async function runWorkflow(
     } else {
       throw e;
     }
-  } finally {
-    await flushWriteQueue(driverState);
   }
   return driverResult;
 }
 
 export async function completeRun(
+  eventSink: EventSink,
   runId: RunId,
   driverResult: DriverResult,
 ): Promise<void> {
+  // Flush any remaining events before signaling completion
+  await eventSink.flush();
+
   const url = `${env.getEngineUrl()}/${runId}/complete`;
   const response = await fetch(url, {
     method: "POST",

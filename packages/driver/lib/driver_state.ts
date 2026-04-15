@@ -1,5 +1,5 @@
 import type { InvocationId, LookupEntry } from "@florca/types";
-import type { Pool } from "@db/postgres";
+import type { EventSink } from "./event_sink.ts";
 import type { InvocationLoggerFactory } from "./invocation_logger.ts";
 import type { WorkflowLogger } from "./workflow_logger.ts";
 
@@ -10,7 +10,7 @@ export type DriverState = {
   lookupTable: LookupEntry[];
   messageHandlers: Map<InvocationId, MessageHandler>;
   workflowMessageHandler: MessageHandler | null;
-  pool: Pool;
+  eventSink: EventSink;
   invocationLoggerFactory: InvocationLoggerFactory;
   workflowLogger: WorkflowLogger;
 };

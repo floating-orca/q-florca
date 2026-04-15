@@ -134,8 +134,9 @@ export async function invokePluginFunction(
 
 _Note that only the root function of a child workflow has a `parent` set. Subsequent functions have a `predecessor` set instead._
 
-## Logging
+## IPC
 
-The driver writes structured log messages to stdout and stderr, which the engine continuously reads.
+The driver communicates with the engine primarily via HTTP:
 
-The engine parses these messages and logs them with log levels and additional metadata such as the ID of the run the driver is associated with.
+- The driver sends all events (invocations and logs) in batches to the engine's `POST /{run}/events` endpoint.
+- Before the driver exits, it flushes any remaining events to ensure all invocation and log data has been delivered, then sends a separate completion request to the engine's `POST /{run}/complete` endpoint to signal the workflow result.

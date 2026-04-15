@@ -4,7 +4,6 @@
   "exports": {},
   "imports": {
     "@aws-sdk/client-lambda": "npm:@aws-sdk/client-lambda@^3.1019.0",
-    "@db/postgres": "jsr:@db/postgres@^0.19.5",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.6",
     "@std/expect": "jsr:@std/expect@^1.0.18",
     "@std/path": "jsr:@std/path@^1.1.4",

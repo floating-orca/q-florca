@@ -3,10 +3,10 @@ import { invokeAwsFunction } from "./aws.ts";
 import { invokeKnFunction } from "./kn.ts";
 import type { Payload, ResponseBody } from "@florca/fn";
 import type {
+  DriverEvent,
   FunctionName,
   InvocationId,
   LookupEntry,
-  RunId,
 } from "@florca/types";
 import type { InvokeArgs } from "./invoke_args.ts";
 import { invokePluginFunction } from "./plugin.ts";
@@ -18,21 +18,6 @@ export class FunctionNotFoundError extends Error {
     this.name = "FunctionNotFoundError";
   }
 }
-
-type QueuedInvocation = {
-  id: InvocationId;
-  parent: InvocationId | null;
-  predecessor: InvocationId | null;
-  runId: RunId;
-  functionName: string;
-  input: string;
-  params: string;
-  startTime: string;
-  output: string;
-  endTime: string;
-};
-
-const writeQueue: QueuedInvocation[] = [];
 
 export const run = async (
   invokeArgs: InvokeArgs,
@@ -77,102 +62,107 @@ const invoke = async (
     driverState.lookupTable,
   );
   const invocationId = crypto.randomUUID();
-  const startTime = new Date().toISOString();
   const invocationLogger = driverState.invocationLoggerFactory.forInvocation(
     invocationId,
     invokeArgs.functionName,
   );
+  const startTime = Temporal.Now.instant().toString();
 
   invocationLogger.logEvent("DEBUG", "Invocation start", {
     input: invokeArgs.input,
     params: invokeArgs.params,
   });
 
-  let response: ResponseBody;
-  if (entry.kind === "aws") {
-    response = await invokeAwsFunction(
-      entry,
-      invokeArgs,
-      invocationId,
-      invocationLogger,
-    );
-  } else if (entry.kind === "kn") {
-    response = await invokeKnFunction(entry, invokeArgs, invocationId);
-  } else if (entry.kind === "plugin") {
-    response = await invokePluginFunction(
-      entry,
-      invokeArgs,
-      invocationId,
-      driverState,
-    );
-  } else {
-    throw new Error(`Unknown function type: ${entry}`);
-  }
-  invocationLogger.logEvent("INFO", "Completed", {
-    input: invokeArgs.input,
-    params: invokeArgs.params,
-    output: response,
-  });
+  try {
+    let response: ResponseBody;
+    if (entry.kind === "aws") {
+      response = await invokeAwsFunction(
+        entry,
+        invokeArgs,
+        invocationId,
+        invocationLogger,
+      );
+    } else if (entry.kind === "kn") {
+      response = await invokeKnFunction(entry, invokeArgs, invocationId);
+    } else if (entry.kind === "plugin") {
+      response = await invokePluginFunction(
+        entry,
+        invokeArgs,
+        invocationId,
+        driverState,
+      );
+    } else {
+      throw new Error(`Unknown function type: ${entry}`);
+    }
 
-  writeQueue.push({
+    const endTime = Temporal.Now.instant().toString();
+    const event: DriverEvent = newSuccessEvent(
+      invocationId,
+      invokeArgs,
+      response,
+      startTime,
+      endTime,
+    );
+    driverState.eventSink.addEvent(event);
+
+    return [invocationId, response];
+  } catch (e) {
+    if (e instanceof Error) {
+      const error = {
+        kind: e.constructor.name,
+        message: e.message,
+      };
+      const failureEvent: DriverEvent = newFailureEvent(
+        invocationId,
+        invokeArgs,
+        startTime,
+        error,
+      );
+      driverState.eventSink.addEvent(failureEvent);
+    }
+
+    throw e;
+  }
+};
+
+function newSuccessEvent(
+  invocationId: InvocationId,
+  invokeArgs: InvokeArgs,
+  response: ResponseBody,
+  startTime: string,
+  endTime: string,
+): DriverEvent {
+  return {
+    type: "invocationSuccess",
     id: invocationId,
     parent: invokeArgs.parent,
     predecessor: invokeArgs.predecessor,
-    runId: invokeArgs.runId,
     functionName: invokeArgs.functionName,
-    input: JSON.stringify(invokeArgs.input ?? null),
-    params: JSON.stringify(invokeArgs.params ?? null),
+    input: invokeArgs.input ?? null,
+    params: invokeArgs.params ?? null,
+    output: response ?? null,
     startTime,
-    output: JSON.stringify(response),
-    endTime: new Date().toISOString(),
-  });
+    endTime,
+  };
+}
 
-  return [invocationId, response];
-};
-
-export async function flushWriteQueue(
-  driverState: DriverState,
-): Promise<void> {
-  if (writeQueue.length === 0) return;
-  using client = await driverState.pool.connect();
-  await client.queryArray("begin");
-  try {
-    const BATCH_SIZE = 1000;
-    const PARAMS_COUNT = 10;
-    for (let start = 0; start < writeQueue.length; start += BATCH_SIZE) {
-      const batch = writeQueue.slice(start, start + BATCH_SIZE);
-      const values: unknown[] = [];
-      const placeholders = batch.map((inv, i) => {
-        const base = i * PARAMS_COUNT;
-        values.push(
-          inv.id,
-          inv.parent,
-          inv.predecessor,
-          inv.runId,
-          inv.functionName,
-          inv.input,
-          inv.params,
-          inv.startTime,
-          inv.output,
-          inv.endTime,
-        );
-        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${
-          base + 5
-        }, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${
-          base + 10
-        })`;
-      });
-      await client.queryArray(
-        `INSERT INTO invocations (id, parent, predecessor, run_id, function_name, input, params, start_time, output, end_time)
-         VALUES ${placeholders.join(", ")}`,
-        values,
-      );
-    }
-    await client.queryArray("commit");
-  } catch (e) {
-    await client.queryArray("rollback");
-    throw e;
-  }
+function newFailureEvent(
+  invocationId: InvocationId,
+  invokeArgs: InvokeArgs,
+  startTime: string,
+  error: { kind: string; message: string },
+): DriverEvent {
+  return {
+    type: "invocationFailure",
+    id: invocationId,
+    parent: invokeArgs.parent,
+    predecessor: invokeArgs.predecessor,
+    functionName: invokeArgs.functionName,
+    input: invokeArgs.input ?? null,
+    params: invokeArgs.params ?? null,
+    startTime,
+    error,
+  };
 }
 
 function findLookupEntry(

@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use florca_core::invocation::InvocationEntity;
 use florca_core::run::{RunEntity, RunId, RunRequest};
 use serde_json::Value;
+use sqlx::QueryBuilder;
 use sqlx::postgres::PgPoolOptions;
 use std::{env, fmt::Debug};
 use tracing::debug;
@@ -29,6 +30,8 @@ pub trait EngineRepository: Debug + Send + Sync {
     async fn get_run_by_id(&self, run_id: RunId) -> Result<RunEntity, GetRunByIdError>;
     async fn get_runs_without_end_time(&self) -> Result<Vec<RunEntity>>;
     async fn new_run(&self, run_request: &RunRequest, start_time: DateTime<Utc>) -> Result<RunId>;
+    async fn get_invocations(&self, run_id: RunId) -> Result<Vec<InvocationEntity>>;
+    async fn insert_invocations(&self, invocations: Vec<InvocationEntity>) -> Result<()>;
     async fn finalize_run(
         &self,
         success: bool,
@@ -36,7 +39,6 @@ pub trait EngineRepository: Debug + Send + Sync {
         output: &Value,
         end_time: DateTime<Utc>,
     ) -> Result<()>;
-    async fn get_invocations(&self, run_id: RunId) -> Result<Vec<InvocationEntity>>;
 }
 
 #[derive(Debug)]
@@ -112,6 +114,48 @@ impl EngineRepository for SqlxEngineRepository {
         Ok(run_id)
     }
 
+    async fn get_invocations(&self, run_id: RunId) -> Result<Vec<InvocationEntity>> {
+        sqlx::query_as::<_, InvocationEntity>(
+            "select id, parent, predecessor, run_id, function_name, input, params, output, start_time, end_time from invocations where run_id = $1",
+        )
+        .bind(run_id)
+        .fetch_all(&self.pool)
+        .await
+        .context("error fetching invocations")
+    }
+
+    async fn insert_invocations(&self, invocations: Vec<InvocationEntity>) -> Result<()> {
+        if invocations.is_empty() {
+            return Ok(());
+        }
+
+        let mut query_builder = QueryBuilder::new(
+            "INSERT INTO invocations (id, parent, predecessor, run_id, function_name, input, params, output, start_time, end_time)",
+        );
+
+        query_builder.push_values(invocations, |mut b, invocation| {
+            b.push_bind(invocation.id)
+                .push_bind(invocation.parent)
+                .push_bind(invocation.predecessor)
+                .push_bind(invocation.run_id)
+                .push_bind(invocation.function_name)
+                .push_bind(invocation.input)
+                .push_bind(invocation.params)
+                .push_bind(invocation.output)
+                .push_bind(invocation.start_time)
+                .push_bind(invocation.end_time);
+        });
+
+        query_builder
+            .push(" ON CONFLICT (id) DO NOTHING")
+            .build()
+            .execute(&self.pool)
+            .await
+            .context("error inserting invocations")?;
+
+        Ok(())
+    }
+
     async fn finalize_run(
         &self,
         success: bool,
@@ -137,15 +181,5 @@ impl EngineRepository for SqlxEngineRepository {
         }
 
         Ok(())
-    }
-
-    async fn get_invocations(&self, run_id: RunId) -> Result<Vec<InvocationEntity>> {
-        sqlx::query_as::<_, InvocationEntity>(
-            "select id, parent, predecessor, run_id, function_name, input, params, output, start_time, end_time from invocations where run_id = $1",
-        )
-        .bind(run_id)
-        .fetch_all(&self.pool)
-        .await
-        .context("error fetching invocations")
     }
 }

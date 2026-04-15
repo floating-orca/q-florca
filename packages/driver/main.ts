@@ -6,34 +6,27 @@ import {
   reportAvailabilityToEngine,
   runWorkflow,
 } from "./lib/mod.ts";
-import { Pool } from "@db/postgres";
-import { ConsoleLogInvocationLoggerFactory } from "./lib/invocation_logger.ts";
-import { ConsoleLogWorkflowLogger } from "./lib/workflow_logger.ts";
+import { EventBatcher } from "./lib/event_batcher.ts";
+import { EventSinkInvocationLoggerFactory } from "./lib/invocation_logger.ts";
+import { EventSinkWorkflowLogger } from "./lib/workflow_logger.ts";
 import type { InvokeArgs } from "./lib/invoke_args.ts";
 import { run } from "./lib/run.ts";
 import type { DriverState } from "./lib/driver_state.ts";
-import * as env from "./lib/env.ts";
 
 if (Deno.args.length !== 1) {
   throw new Error("Expected exactly one argument");
 }
 const driverArgs: DriverArgs = JSON.parse(Deno.args[0]);
 
-const POOL_CONNECTIONS = 10;
-const databaseUrl = env.getEngineDatabaseUrl();
-const pool = new Pool(
-  databaseUrl,
-  POOL_CONNECTIONS,
-  true,
-);
-const invocationLoggerFactory = new ConsoleLogInvocationLoggerFactory();
-const workflowLogger = new ConsoleLogWorkflowLogger();
+const eventSink = new EventBatcher(driverArgs.runId);
+const invocationLoggerFactory = new EventSinkInvocationLoggerFactory(eventSink);
+const workflowLogger = new EventSinkWorkflowLogger(eventSink);
 
 const driverState: DriverState = {
   lookupTable: await gatherLookupEntries(driverArgs.deploymentPath),
   messageHandlers: new Map(),
   workflowMessageHandler: null,
-  pool,
+  eventSink,
   invocationLoggerFactory,
   workflowLogger,
 };
@@ -115,7 +108,7 @@ const server = Deno.serve(
 await reportAvailabilityToEngine(driverArgs.runId, server.addr.port);
 
 const driverResult = await runWorkflow(driverArgs, driverState);
-await completeRun(driverArgs.runId, driverResult);
+await completeRun(driverState.eventSink, driverArgs.runId, driverResult);
 
 server.shutdown();
 

@@ -1,8 +1,6 @@
 # Communication & bindings
 
-Almost all communication between the components happens via HTTP requests, using JSON as the data format.
-
-The only exception is the communication between the driver instances and the engine, where the engine parses stdout and stderr of driver instances for displaying log messages with metadata.
+Communication between the components usually happens via HTTP, using JSON as the data format.
 
 Most of the communication is typed. For communication between two Rust services, the types are defined in the `core` crate. For communication between Rust and TypeScript, the [`ts-rs`](https://docs.rs/ts-rs/latest/ts_rs/) crate is used to generate TypeScript bindings from Rust types.
 
@@ -32,7 +30,7 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 #[derive(TS)]
 #[ts(export)]
-pub struct LogEvent {
+pub struct LogMessage {
     pub level: LogLevel,
     pub message: String,
 }
@@ -53,6 +51,6 @@ Just mark the root type with `#[derive(TS)]` and `#[ts(export)]`. All nested typ
 The corresponding TypeScript bindings would look like this:
 
 ```ts
-export type LogEvent = { level: LogLevel, message: string, };
+export type LogMessage = { level: LogLevel, message: string, };
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 ```

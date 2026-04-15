@@ -2,6 +2,7 @@ use crate::{
     deployer_client::DeployerClient,
     driver::DriverManager,
     error::{ReportError, RunWorkflowError},
+    event_processor::EventProcessor,
     process::ProcessManager,
     repository::{EngineRepository, GetRunByIdError},
 };
@@ -111,6 +112,10 @@ impl RunService {
             Err(GetRunByIdError::NotFound(_)) => Ok(false),
             Err(GetRunByIdError::Other(err)) => Err(err),
         }
+    }
+
+    pub fn new_event_processor(&self, run_id: RunId) -> EventProcessor {
+        EventProcessor::new(run_id, self.repository.clone())
     }
 
     pub async fn finalize_run(&self, run_id: RunId, driver_result: DriverResult) -> Result<()> {

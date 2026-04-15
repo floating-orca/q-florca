@@ -1,21 +1,25 @@
-import type { LogEvent, LogLevel } from "@florca/types";
+import type { LogLevel } from "@florca/types";
+import type { DriverEvent } from "@florca/types";
+import type { EventSink } from "./event_sink.ts";
 
 export interface WorkflowLogger {
   // deno-lint-ignore no-explicit-any
   logEvent(level: LogLevel, message: string, data?: any): void;
 }
 
-export class ConsoleLogWorkflowLogger implements WorkflowLogger {
-  constructor() {}
+export class EventSinkWorkflowLogger implements WorkflowLogger {
+  constructor(private readonly eventSink: EventSink) {}
 
   // deno-lint-ignore no-explicit-any
   logEvent(level: LogLevel, message: string, data?: any): void {
-    const workflowLogMessage: LogEvent = {
+    const workflowLogMessage: DriverEvent = {
+      type: "log",
+      scope: "workflow",
       level,
       message,
       data,
     };
 
-    console.log(JSON.stringify(workflowLogMessage));
+    this.eventSink.addEvent(workflowLogMessage);
   }
 }

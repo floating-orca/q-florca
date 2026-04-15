@@ -7,7 +7,7 @@ use std::{env, os::unix::process::ExitStatusExt, path::Path, process::ExitStatus
 use tracing::{debug, error};
 
 mod driver_command;
-mod driver_logs;
+pub mod driver_events;
 
 #[derive(Debug, Clone)]
 pub struct DriverManager {
@@ -80,21 +80,6 @@ impl DriverManager {
             )
         })?;
         self.add_pending_driver_process(pid).await?;
-
-        let stdout = command.stdout.take().ok_or_else(|| {
-            anyhow::anyhow!(
-                "Failed to capture stdout for driver process with run ID {}",
-                self.run_id
-            )
-        })?;
-        let stderr = command.stderr.take().ok_or_else(|| {
-            anyhow::anyhow!(
-                "Failed to capture stderr for driver process with run ID {}",
-                self.run_id
-            )
-        })?;
-        driver_logs::parse_stdout_and_stderr(stdout, stderr, self.run_id);
-
         Ok(command.wait().await?)
     }
 
