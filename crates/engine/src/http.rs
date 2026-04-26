@@ -1,6 +1,7 @@
 use crate::AppState;
 use anyhow::Result;
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{delete, get, post};
 use std::sync::Arc;
 
@@ -34,7 +35,8 @@ pub async fn serve(shared_state: Arc<AppState>) -> Result<()> {
         .route("/{run}", post(message_endpoints::to_workflow))
         .route("/{run}", get(message_endpoints::html_from_workflow))
         .route("/{run}", delete(kill_endpoint::kill))
-        .with_state(shared_state.clone());
+        .with_state(shared_state.clone())
+        .layer(DefaultBodyLimit::disable());
     let port = std::env::var("PORT").unwrap_or_else(|_| "8001".to_string());
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
     let kill_service = shared_state.kill_service.clone();

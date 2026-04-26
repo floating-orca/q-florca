@@ -4,7 +4,7 @@ use crate::errors::{
 };
 use anyhow::Result;
 use axum::body::Body;
-use axum::extract::Multipart;
+use axum::extract::{DefaultBodyLimit, Multipart};
 use axum::response::{IntoResponse, Response};
 use axum::{
     Json, Router,
@@ -24,7 +24,8 @@ pub async fn serve(shared_state: Arc<RwLock<AppState>>) -> Result<()> {
     let app = Router::new()
         .route("/", get(list_deployments).post(deploy))
         .route("/{name}", get(fetch_deployment).delete(delete_deployment))
-        .with_state(shared_state);
+        .with_state(shared_state)
+        .layer(DefaultBodyLimit::disable());
     let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
     let listener = TcpListener::bind(format!("0.0.0.0:{port}")).await?;
     axum::serve(listener, app).await?;
