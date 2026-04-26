@@ -3,15 +3,13 @@ import { invokeAwsFunction } from "./aws.ts";
 import { invokeKnFunction } from "./kn.ts";
 import type { Payload, ResponseBody } from "@florca/fn";
 import type {
-  DeploymentName,
   FunctionName,
   InvocationId,
-  JsonValue,
   LookupEntry,
   RunId,
 } from "@florca/types";
+import type { InvokeArgs } from "./invoke_args.ts";
 import { invokePluginFunction } from "./plugin.ts";
-import { logEvent } from "./mod.ts";
 import type { DriverState } from "./driver_state.ts";
 
 export class FunctionNotFoundError extends Error {
@@ -20,17 +18,6 @@ export class FunctionNotFoundError extends Error {
     this.name = "FunctionNotFoundError";
   }
 }
-
-export type InvokeArgs = {
-  runId: RunId;
-  deploymentName: DeploymentName;
-  deploymentPath: string;
-  functionName: FunctionName;
-  input: JsonValue;
-  params: JsonValue;
-  parent: InvocationId | null;
-  predecessor: InvocationId | null;
-};
 
 type QueuedInvocation = {
   id: InvocationId;
@@ -85,20 +72,30 @@ const invoke = async (
   invokeArgs: InvokeArgs,
   driverState: DriverState,
 ): Promise<[InvocationId, ResponseBody]> => {
-  const entry = findLookupEntry(invokeArgs.functionName, driverState);
+  const entry = findLookupEntry(
+    invokeArgs.functionName,
+    driverState.lookupTable,
+  );
   const invocationId = crypto.randomUUID();
   const startTime = new Date().toISOString();
+  const invocationLogger = driverState.invocationLoggerFactory.forInvocation(
+    invocationId,
+    invokeArgs.functionName,
+  );
 
-  logEvent("DEBUG", "Invoking", {
-    invocation: invocationId,
-    function: invokeArgs.functionName,
+  invocationLogger.logEvent("DEBUG", "Invocation start", {
     input: invokeArgs.input,
     params: invokeArgs.params,
   });
 
   let response: ResponseBody;
   if (entry.kind === "aws") {
-    response = await invokeAwsFunction(entry, invokeArgs, invocationId);
+    response = await invokeAwsFunction(
+      entry,
+      invokeArgs,
+      invocationId,
+      invocationLogger,
+    );
   } else if (entry.kind === "kn") {
     response = await invokeKnFunction(entry, invokeArgs, invocationId);
   } else if (entry.kind === "plugin") {
@@ -111,9 +108,7 @@ const invoke = async (
   } else {
     throw new Error(`Unknown function type: ${entry}`);
   }
-  logEvent("INFO", "Completed", {
-    invocation: invocationId,
-    function: invokeArgs.functionName,
+  invocationLogger.logEvent("INFO", "Completed", {
     input: invokeArgs.input,
     params: invokeArgs.params,
     output: response,
@@ -182,9 +177,9 @@ export async function flushWriteQueue(
 
 function findLookupEntry(
   functionName: string,
-  driverState: DriverState,
+  lookupTable: LookupEntry[],
 ): LookupEntry {
-  const entry = driverState.lookupTable.find((f) => f.name === functionName);
+  const entry = lookupTable.find((f) => f.name === functionName);
   if (!entry) {
     throw new FunctionNotFoundError(functionName);
   }

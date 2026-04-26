@@ -1,8 +1,6 @@
 import type {
   DriverArgs,
   DriverResult,
-  LogEvent,
-  LogLevel,
   LookupEntry,
   ReportReadinessRequest,
   RunId,
@@ -13,15 +11,6 @@ import { getPluginFilePath, namesOfShippedPlugins } from "./functions/mod.ts";
 import type { DriverState } from "./driver_state.ts";
 import { getAuthorizationHeader } from "./auth.ts";
 import * as env from "./env.ts";
-
-export function logEvent(level: LogLevel, message: string, data?: any) {
-  const logEvent: LogEvent = {
-    level,
-    message,
-    data,
-  };
-  console.log(JSON.stringify(logEvent));
-}
 
 export async function gatherLookupEntries(
   deploymentPath: string,
@@ -50,7 +39,7 @@ export async function reportAvailabilityToEngine(runId: RunId, port: number) {
     port: port,
     runId: runId,
   };
-  await fetch(`${env.getEngineUrl()}/ready`, {
+  const response = await fetch(`${env.getEngineUrl()}/ready`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -58,6 +47,12 @@ export async function reportAvailabilityToEngine(runId: RunId, port: number) {
     },
     body: JSON.stringify(reportReadinessRequest),
   });
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(
+      `Failed to report driver readiness: ${response.status} ${response.statusText}\n${errorText}`,
+    );
+  }
 }
 
 export async function runWorkflow(
@@ -98,4 +93,14 @@ export async function runWorkflow(
     await flushWriteQueue(driverState);
   }
   return driverResult;
+}
+
+export async function completeRun(
+  driverArgs: DriverArgs,
+  driverResult: DriverResultKind,
+): Promise<void> {
+  await Deno.writeTextFile(
+    driverArgs.outfilePath,
+    JSON.stringify(driverResult),
+  );
 }

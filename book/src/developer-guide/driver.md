@@ -63,7 +63,10 @@ const invoke = async (
   invokeArgs: InvokeArgs,
   driverState: DriverState,
 ): Promise<[InvocationId, ResponseBody]> => {
-  const entry = findLookupEntry(invokeArgs.functionName, driverState);
+  const entry = findLookupEntry(
+    invokeArgs.functionName,
+    driverState.lookupTable,
+  );
   const invocationId = crypto.randomUUID();
   let response: ResponseBody;
   if (entry.kind === "aws") {

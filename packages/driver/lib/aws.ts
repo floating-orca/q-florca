@@ -8,15 +8,16 @@ import {
 } from "@aws-sdk/client-lambda";
 import { Buffer } from "node:buffer";
 import type { InvocationId, LookupEntry } from "@florca/types";
-import type { InvokeArgs } from "./run.ts";
-import { logEvent } from "./mod.ts";
+import type { InvokeArgs } from "./invoke_args.ts";
 import { getAuthorizationHeader } from "./auth.ts";
 import * as env from "./env.ts";
+import type { InvocationLogger } from "./invocation_logger.ts";
 
 export const invokeAwsFunction = async (
   entry: LookupEntry,
   invokeArgs: InvokeArgs,
   invocationId: InvocationId,
+  invocationLogger: InvocationLogger,
 ): Promise<ResponseBody> => {
   const arn = entry.location;
   const body: RemoteRequestBody = {
@@ -41,7 +42,6 @@ export const invokeAwsFunction = async (
   };
   const command = new InvokeCommand(input);
 
-  logEvent("DEBUG", "Invoking AWS Lambda function", arn);
   const response: InvokeCommandOutput = await client.send(command);
   const { FunctionError, Payload, LogResult, StatusCode } = response;
 
@@ -63,13 +63,13 @@ export const invokeAwsFunction = async (
     const message =
       `AWS Lambda function ${arn} failed with error: ${FunctionError}`;
     if (logs) {
-      logEvent("ERROR", message);
-      logEvent("ERROR", logs);
+      invocationLogger.logEvent("ERROR", message);
+      invocationLogger.logEvent("ERROR", logs);
     }
     throw new Error(message);
   } else {
     if (logs) {
-      logEvent("DEBUG", logs);
+      invocationLogger.logEvent("DEBUG", logs);
     }
   }
 

@@ -1,13 +1,16 @@
 import { type Context, Hono } from "@hono/hono";
 import type { DriverArgs, InvocationId, InvokeChildArgs } from "@florca/types";
 import {
+  completeRun,
   gatherLookupEntries,
-  logEvent,
   reportAvailabilityToEngine,
   runWorkflow,
 } from "./lib/mod.ts";
-import { type InvokeArgs, run } from "./lib/run.ts";
 import { Pool } from "@db/postgres";
+import { ConsoleLogInvocationLoggerFactory } from "./lib/invocation_logger.ts";
+import { ConsoleLogWorkflowLogger } from "./lib/workflow_logger.ts";
+import type { InvokeArgs } from "./lib/invoke_args.ts";
+import { run } from "./lib/run.ts";
 import type { DriverState } from "./lib/driver_state.ts";
 import * as env from "./lib/env.ts";
 
@@ -23,12 +26,16 @@ const pool = new Pool(
   POOL_CONNECTIONS,
   true,
 );
+const invocationLoggerFactory = new ConsoleLogInvocationLoggerFactory();
+const workflowLogger = new ConsoleLogWorkflowLogger();
 
 const driverState: DriverState = {
   lookupTable: await gatherLookupEntries(driverArgs.deploymentPath),
   messageHandlers: new Map(),
   workflowMessageHandler: null,
   pool,
+  invocationLoggerFactory,
+  workflowLogger,
 };
 
 const app = new Hono();
@@ -53,7 +60,7 @@ app.post("/", async (c: Context) => {
   if (workflowMessageHandler) {
     ret = await workflowMessageHandler(message);
   }
-  logEvent("DEBUG", "Message", {
+  driverState.workflowLogger.logEvent("DEBUG", "Message", {
     message,
     response: ret,
   });
@@ -68,7 +75,7 @@ app.post("/:id", async (c: Context) => {
   if (messageHandler) {
     ret = await messageHandler(message);
   }
-  logEvent("DEBUG", "Message", {
+  driverState.workflowLogger.logEvent("DEBUG", "Message", {
     message,
     respondingInvocation: invocationId,
     response: ret,
@@ -108,10 +115,7 @@ const server = Deno.serve(
 await reportAvailabilityToEngine(driverArgs.runId, server.addr.port);
 
 const driverResult = await runWorkflow(driverArgs, driverState);
-await Deno.writeTextFile(
-  driverArgs.outfilePath,
-  JSON.stringify(driverResult),
-);
+await completeRun(driverArgs, driverResult);
 
 server.shutdown();
 

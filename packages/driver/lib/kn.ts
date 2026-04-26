@@ -1,6 +1,6 @@
 import type { RemoteRequestBody, ResponseBody } from "@florca/fn";
 import type { InvocationId, LookupEntry } from "@florca/types";
-import type { InvokeArgs } from "./run.ts";
+import type { InvokeArgs } from "./invoke_args.ts";
 import { getAuthorizationHeader } from "./auth.ts";
 import * as env from "./env.ts";
 

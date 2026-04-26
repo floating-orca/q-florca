@@ -8,8 +8,9 @@ import type {
   PluginRequestBody,
   ResponseBody,
 } from "@florca/fn";
-import type { InvocationId, LookupEntry, PluginLogEvent } from "@florca/types";
-import { type InvokeArgs, run } from "./run.ts";
+import type { InvocationId, LookupEntry } from "@florca/types";
+import type { InvokeArgs } from "./invoke_args.ts";
+import { run } from "./run.ts";
 import type { DriverState } from "./driver_state.ts";
 import { getAuthorizationHeader } from "./auth.ts";
 import * as env from "./env.ts";
@@ -20,6 +21,10 @@ export async function invokePluginFunction(
   invocationId: InvocationId,
   driverState: DriverState,
 ): Promise<ResponseBody> {
+  const invocationLogger = driverState.invocationLoggerFactory.forInvocation(
+    invocationId,
+    invokeArgs.functionName,
+  );
   const plugin = await import(
     resolve(invokeArgs.deploymentPath, entry.location)
   );
@@ -32,14 +37,7 @@ export async function invokePluginFunction(
       parentId: invokeArgs.parent,
       workflowMessageUrl: `${env.getEngineUrl()}/${invokeArgs.runId}`,
       logEvent: (level: LogLevel, message: string, data?: any) => {
-        const pluginLogEvent: PluginLogEvent = {
-          level,
-          message,
-          data,
-          invocationId: invocationId,
-          functionName: invokeArgs.functionName,
-        };
-        console.log(JSON.stringify(pluginLogEvent));
+        invocationLogger.logEvent(level, message, data);
       },
       onMessage: (fn: ((message: any) => void) | null) => {
         if (fn) {
