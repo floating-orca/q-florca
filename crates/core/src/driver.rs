@@ -1,5 +1,6 @@
 use crate::{
-    deployment::DeploymentName, function::FunctionName, invocation::InvocationId, run::RunId,
+    deployment::DeploymentName, function::FunctionName, invocation::InvocationId,
+    lookup::LookupManifest, run::RunId,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -17,6 +18,7 @@ pub struct DriverArgs {
     pub entry_point: FunctionName,
     pub input: Value,
     pub params: Value,
+    pub lookup_manifest: LookupManifest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

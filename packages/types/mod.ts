@@ -1,4 +1,6 @@
 export * from "./bindings/serde_json/JsonValue.ts";
+export * from "./bindings/DeploymentConfig.ts";
+export * from "./bindings/LookupManifest.ts";
 export * from "./bindings/DeploymentName.ts";
 export * from "./bindings/DriverArgs.ts";
 export * from "./bindings/DriverErrorDetails.ts";

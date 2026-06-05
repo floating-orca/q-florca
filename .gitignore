@@ -7,3 +7,6 @@
 /.env.local
 /Caddyfile
 /florca
+.idea
+templates/aws/nodejs24.x/test/node_modules
+.claude/

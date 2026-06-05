@@ -13,6 +13,8 @@ This book is intended to provide a comprehensive guide to the _FloatingOrca_ pro
 However, it is still a work in progress and may contain incomplete or outdated information.
 As the project evolves, this book will be updated to reflect the latest changes and improvements.
 
+This repository also contains **qFLORCA**, a fully serverless extension of _FloatingOrca_ that realizes the same coordination model on AWS Lambda and SQS alone — with no central engine to host. It is documented in its own chapter at the end of this book: [qFLORCA — SQS-native coordination](./user-guide/qflorca.md).
+
 Before continuing with the next chapter, [Getting started](./user-guide/getting-started.md), let's clarify some basic concepts.
 
 ## What is _FloatingOrca_?

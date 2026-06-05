@@ -1,5 +1,5 @@
 provider = "aws"
 handler = "index.handler"
-runtime = "python3.14"
+runtime = "nodejs24.x"
 memory = 128
 timeout = 3

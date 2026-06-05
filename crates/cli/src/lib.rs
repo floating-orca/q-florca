@@ -17,13 +17,13 @@ pub fn run(cli: Cli) -> Result<()> {
         Command::Deploy(command) => command.execute()?,
         Command::Info(command) => command.execute(),
         Command::Inspect(command) => command.execute()?,
+        Command::Invoke(command) => command.execute()?,
         Command::Kill(command) => command.execute()?,
         Command::List(command) => command.execute()?,
         Command::Message(subcmd) => subcmd.execute()?,
         Command::New(command) => command.execute()?,
         Command::Ps(command) => command.execute()?,
-        Command::Run(command) => command.execute()?,
-        Command::Templates(command) => command.execute(),
+Command::Templates(command) => command.execute(),
     }
     Ok(())
 }

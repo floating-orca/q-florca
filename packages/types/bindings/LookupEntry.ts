@@ -2,4 +2,12 @@
 import type { FunctionName } from "./FunctionName.ts";
 import type { LookupEntryKind } from "./LookupEntryKind.ts";
 
-export type LookupEntry = { name: FunctionName, kind: LookupEntryKind, location: string, };
+export type LookupEntry = { name: FunctionName, kind: LookupEntryKind, 
+/**
+ * Lambda ARN (AWS) or HTTP URL (Knative).
+ */
+location: string, 
+/**
+ * SQS Standard invoke queue URL. AWS functions only.
+ */
+invokeQueueUrl?: string | null, };

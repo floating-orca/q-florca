@@ -39,3 +39,7 @@
 
 - [Default plugins](./reference/default-plugins.md)
 - [Release notes](./reference/release-notes.md)
+
+# qFLORCA extension
+
+- [qFLORCA — SQS-native coordination](./user-guide/qflorca.md)

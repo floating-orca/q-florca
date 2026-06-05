@@ -1,6 +1,11 @@
 use florca_core::deployment::DeploymentName;
 use std::path::PathBuf;
 
+/// An error whose message is safe to surface directly to the CLI user.
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct UserFacingError(pub String);
+
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct ListDeploymentsError(#[from] pub anyhow::Error);

@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["crates/*"]
+members = [
+  "crates/cli",
+  "crates/core",
+  "crates/deployer",
+]
 
 [workspace.dependencies]
 anyhow = "1.0.102"

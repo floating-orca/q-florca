@@ -48,10 +48,12 @@ impl SqlxDeployerRepository {
 #[async_trait::async_trait]
 impl DeployerRepository for SqlxDeployerRepository {
     async fn get_deployments(&self) -> Result<Vec<DeploymentEntity>> {
-        let deployments = sqlx::query_as::<_, DeploymentEntity>("select id, name from deployments")
-            .fetch_all(&self.pool)
-            .await
-            .context("Failed to fetch deployments")?;
+        let deployments = sqlx::query_as::<_, DeploymentEntity>(
+            "select id, name, events_queue_arn from deployments",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to fetch deployments")?;
         Ok(deployments)
     }
 
@@ -60,21 +62,29 @@ impl DeployerRepository for SqlxDeployerRepository {
         params: &CreateDeploymentParams,
     ) -> Result<()> {
         let mut tx = self.pool.begin().await?;
-        let deployment_id: i32 =
-            sqlx::query_scalar("insert into deployments (name) values ($1) returning id")
-                .bind(&params.name)
-                .fetch_one(&mut *tx)
-                .await?;
+        let deployment_id: i32 = sqlx::query_scalar(
+            "insert into deployments (name, events_queue_arn) \
+             values ($1, $2) returning id",
+        )
+        .bind(&params.name)
+        .bind(params.config.events_queue_arn.as_ref())
+        .fetch_one(&mut *tx)
+        .await?;
         for f in &params.functions {
             match f {
                 FunctionToCreate::Aws(f) => {
-                    let query = "insert into functions (deployment_id, name, kind, location, hash) values ($1, $2, $3, $4, $5)";
+                    let query = "insert into functions \
+                        (deployment_id, name, kind, location, hash, \
+                         invoke_queue_arn, invoke_esm_uuid) \
+                        values ($1, $2, $3, $4, $5, $6, $7)";
                     sqlx::query(query)
                         .bind(deployment_id)
                         .bind(&f.name)
                         .bind("aws")
                         .bind(&f.arn)
                         .bind(&f.hash)
+                        .bind(f.invoke_queue_arn.as_ref())
+                        .bind(f.invoke_esm_uuid.as_ref())
                         .execute(&mut *tx)
                         .await?;
                 }
@@ -111,7 +121,7 @@ impl DeployerRepository for SqlxDeployerRepository {
         deployment_name: &DeploymentName,
     ) -> Result<Option<DeploymentEntity>> {
         let deployment = sqlx::query_as::<_, DeploymentEntity>(
-            "select id, name from deployments where name = $1",
+            "select id, name, events_queue_arn from deployments where name = $1",
         )
         .bind(deployment_name.as_ref())
         .fetch_optional(&self.pool)
@@ -122,7 +132,9 @@ impl DeployerRepository for SqlxDeployerRepository {
 
     async fn get_functions(&self, deployment_id: i32) -> Result<Vec<FunctionEntity>> {
         let functions = sqlx::query_as::<_, FunctionEntity>(
-            "select id, deployment_id, name, kind, location, hash, blob from functions where deployment_id = $1",
+            "select id, deployment_id, name, kind, location, hash, blob, \
+                    invoke_queue_arn, invoke_esm_uuid \
+             from functions where deployment_id = $1",
         )
         .bind(deployment_id)
         .fetch_all(&self.pool)
@@ -141,12 +153,15 @@ impl DeployerRepository for SqlxDeployerRepository {
 
 pub mod create_deployment_params {
 
+    use florca_core::deployment::DeploymentConfig;
     use florca_core::function::FunctionName;
 
     pub struct AwsFunctionToCreate {
         pub name: FunctionName,
         pub arn: String,
         pub hash: String,
+        pub invoke_queue_arn: Option<String>,
+        pub invoke_esm_uuid: Option<String>,
     }
 
     pub struct KnFunctionToCreate {
@@ -170,12 +185,21 @@ pub mod create_deployment_params {
     pub struct CreateDeploymentParams {
         pub name: String,
         pub functions: Vec<FunctionToCreate>,
+        pub config: DeploymentConfig,
     }
 
     impl CreateDeploymentParams {
         #[must_use]
-        pub fn new(name: String, functions: Vec<FunctionToCreate>) -> Self {
-            CreateDeploymentParams { name, functions }
+        pub fn new(
+            name: String,
+            functions: Vec<FunctionToCreate>,
+            config: DeploymentConfig,
+        ) -> Self {
+            CreateDeploymentParams {
+                name,
+                functions,
+                config,
+            }
         }
     }
 }

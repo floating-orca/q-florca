@@ -1,13 +1,13 @@
 use crate::command::{
-    CompletionsCommand, DeleteCommand, DeployCommand, InfoCommand, InspectCommand, KillCommand,
-    ListCommand, MessageCommand, NewCommand, PsCommand, RunCommand, TemplatesCommand,
+    CompletionsCommand, DeleteCommand, DeployCommand, InfoCommand, InspectCommand, InvokeCommand,
+    KillCommand, ListCommand, MessageCommand, NewCommand, PsCommand, TemplatesCommand,
 };
 use crate::util;
 use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
-#[command(name= "florca", version, about = "A command-line interface for florca", long_about = None)]
+#[command(name = "qflorca", version, about = "A command-line interface for qFLORCA (queue-native FLORCA)", long_about = None)]
 pub struct Cli {
     #[command(flatten)]
     pub global_opts: GlobalOpts,
@@ -35,6 +35,8 @@ pub enum Command {
     Info(InfoCommand),
     /// Inspect a workflow run
     Inspect(InspectCommand),
+    /// Invoke an AWS deployment and stream events
+    Invoke(InvokeCommand),
     /// Kill a workflow run
     Kill(KillCommand),
     /// List deployments
@@ -45,8 +47,6 @@ pub enum Command {
     New(NewCommand),
     /// List running workflows
     Ps(PsCommand),
-    /// Run a workflow
-    Run(RunCommand),
-    /// List available templates
+/// List available templates
     Templates(TemplatesCommand),
 }

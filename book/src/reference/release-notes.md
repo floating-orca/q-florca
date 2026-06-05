@@ -2,6 +2,20 @@
 
 _See the [Upgrade](../user-guide/upgrade.md) chapter for instructions on how to upgrade to the latest version._
 
+## v0.9.0+Q (qFLORCA)
+
+Introduces **qFLORCA**, a fully serverless, queue-native extension that realizes FloatingOrca's coordination model on AWS Lambda and SQS alone — no engine, driver, or central service on the execution path. See the [qFLORCA](../user-guide/qflorca.md) chapter.
+
+- All orchestration logic is embedded in an injected per-Lambda wrapper (`fn.js`); the engine and driver are not used at run time.
+- Per-invocation inbox and aggregation queues replace the central engine: child results, bidirectional messaging, and crash-recovery snapshots all live in SQS queues owned by each invocation.
+- The CLI invokes a workflow by sending the envelope directly to the entry function's SQS queue and streaming the events queue, rather than calling an engine.
+- The CLI binary is named `qflorca` for this variant.
+- Added examples: `webcrawler-batched`, `webcrawler-greedy`, `flexi-consensus-phased`, `flexi-consensus-messaging`, and the `parallel-aws-messaging` scaling workload.
+
+This is an additive extension; the base FloatingOrca runtime is unchanged.
+
+> **No pre-built images are published for `0.9.0+Q`.** To run this version, build it from source — see [Build from source](../user-guide/build-from-source.md). (The `compose.yaml` image tags still point at the last published release.)
+
 ## v0.9.0
 
 - Use `UUID`s for invocation IDs instead of `SERIAL` IDs

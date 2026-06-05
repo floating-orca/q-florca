@@ -1,6 +1,6 @@
 [package]
 name = "florca-deployer"
-version = "0.9.0"
+version = "0.9.0+Q"
 edition = "2024"
 
 [dependencies]
@@ -30,6 +30,7 @@ zip = { workspace = true }
 zip-extensions = { workspace = true }
 aws-config = "1.8.15"
 aws-sdk-lambda = "1.119.0"
+aws-sdk-sqs = "1.97.0"
 chksum = "0.4.0"
 tokio-util = "0.7.18"
 

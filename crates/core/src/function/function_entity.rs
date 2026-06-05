@@ -15,6 +15,8 @@ pub struct RawFunctionEntity {
     pub location: String,
     pub hash: Option<String>,
     pub blob: Option<Vec<u8>>,
+    pub invoke_queue_arn: Option<String>,
+    pub invoke_esm_uuid: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

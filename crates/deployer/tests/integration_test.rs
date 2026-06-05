@@ -83,7 +83,18 @@ async fn test_deploy_and_delete() -> Result<()> {
         let kn_functions = kn_client.functions.read().await;
         assert_eq!(kn_functions.len(), 0);
     }
+    
+    // verify the deployment has the events queue arn set
+    assert!(deployment.events_queue_arn.is_some());
 
+    // verify each AWS function has invoke queue arn set
+    for function in &functions {
+        if let florca_core::function::FunctionEntity::Aws(aws) = function {
+            assert!(aws.invoke_queue_arn.is_some());
+            assert!(aws.invoke_esm_uuid.is_some());
+        }
+    }
+    
     // Delete the deployment
 
     deployer_service

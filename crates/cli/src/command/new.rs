@@ -86,7 +86,7 @@ fn create_function(
     let template_files = util::template::get_function_template(*provider, runtime);
     if template_files.is_none() && !arbitrary {
         bail!(
-            "No template found for provider '{}' and runtime '{}'. Run `florca templates` to see all available templates. If you still want to create a function with this provider and runtime, use the `--arbitrary` flag.",
+            "No template found for provider '{}' and runtime '{}'. Run `qflorca templates` to see all available templates. If you still want to create a function with this provider and runtime, use the `--arbitrary` flag.",
             provider.code(),
             runtime
         );

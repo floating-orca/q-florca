@@ -23,6 +23,7 @@ use tracing::{error, warn};
 pub async fn serve(shared_state: Arc<RwLock<AppState>>) -> Result<()> {
     let app = Router::new()
         .route("/", get(list_deployments).post(deploy))
+        .route("/{name}/manifest", get(fetch_manifest_json))
         .route("/{name}", get(fetch_deployment).delete(delete_deployment))
         .with_state(shared_state)
         .layer(DefaultBodyLimit::disable());
@@ -81,6 +82,19 @@ pub async fn deploy(
         .await
 }
 
+pub async fn fetch_manifest_json(
+    Path(name): Path<DeploymentName>,
+    State(state): State<Arc<RwLock<AppState>>>,
+) -> axum::response::Result<Json<florca_core::lookup::LookupManifest>, FetchDeploymentError> {
+    let manifest = state
+        .read()
+        .await
+        .deployer_service
+        .fetch_manifest(&name)
+        .await?;
+    Ok(Json(manifest))
+}
+
 pub async fn fetch_deployment(
     Path(name): Path<DeploymentName>,
     State(state): State<Arc<RwLock<AppState>>>,
@@ -133,7 +147,11 @@ impl IntoResponse for DeployError {
             }
             DeployError::Other(e) => {
                 error!("{:?}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+                if let Some(user_err) = e.downcast_ref::<crate::errors::UserFacingError>() {
+                    (StatusCode::SERVICE_UNAVAILABLE, user_err.to_string()).into_response()
+                } else {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+                }
             }
         }
     }

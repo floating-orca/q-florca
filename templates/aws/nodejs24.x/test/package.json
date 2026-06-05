@@ -1,0 +1,11 @@
+{
+  "name": "florca-lambda-template-tests",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "node --test --test-concurrency=1 *.test.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.0.0"
+  }
+}

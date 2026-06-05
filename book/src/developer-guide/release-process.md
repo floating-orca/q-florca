@@ -44,3 +44,17 @@ To release a new version, follow these steps:
    ```
 
    _Please review the script before running it to ensure it meets your needs._
+
+## Release the qFLORCA book
+
+The [qFLORCA](../user-guide/qflorca.md) extension (`0.9.0+Q`) ships **no pre-built
+images or binaries** — users build from source — so its "release" is just the
+documentation. To publish the book on its own, run:
+
+```bash
+scripts/releaseQFlorca.sh
+```
+
+This builds the mdBook and uploads it as a GitHub release asset (creating the
+release if needed). It requires `mdbook` and an authenticated `gh`. Override the
+target repository or tag with `REPO=owner/name` and `TAG=...` if needed.

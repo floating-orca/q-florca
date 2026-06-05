@@ -19,6 +19,10 @@ pub trait DeployerService: Debug + Send + Sync {
         force: bool,
     ) -> Result<(), DeployError>;
     async fn fetch_deployment(&self, name: &DeploymentName) -> Result<File, FetchDeploymentError>;
+    async fn fetch_manifest(
+        &self,
+        name: &DeploymentName,
+    ) -> Result<florca_core::lookup::LookupManifest, FetchDeploymentError>;
     async fn delete_deployment(&self, name: &DeploymentName) -> Result<(), DeleteDeploymentError>;
 }
 
@@ -64,7 +68,24 @@ impl DeployerService for DeployerServiceImpl {
             return Err(FetchDeploymentError::NotFound(name.clone()));
         };
         let functions = self.repository.get_functions(deployment.id).await?;
-        Ok(crate::pack::pack_deployment(functions).await?)
+        let config = florca_core::deployment::DeploymentConfig {
+            events_queue_arn: deployment.events_queue_arn.clone(),
+        };
+        Ok(crate::pack::pack_deployment(functions, config).await?)
+    }
+
+    async fn fetch_manifest(
+        &self,
+        name: &DeploymentName,
+    ) -> Result<florca_core::lookup::LookupManifest, FetchDeploymentError> {
+        let Some(deployment) = self.repository.get_deployment(name).await? else {
+            return Err(FetchDeploymentError::NotFound(name.clone()));
+        };
+        let functions = self.repository.get_functions(deployment.id).await?;
+        let config = florca_core::deployment::DeploymentConfig {
+            events_queue_arn: deployment.events_queue_arn.clone(),
+        };
+        Ok(crate::pack::build_manifest(&functions, &config)?)
     }
 
     async fn delete_deployment(&self, name: &DeploymentName) -> Result<(), DeleteDeploymentError> {
@@ -76,6 +97,15 @@ impl DeployerService for DeployerServiceImpl {
         for function_entity in function_entities {
             match function_entity {
                 FunctionEntity::Aws(aws) => {
+                    if let Some(uuid) = &aws.invoke_esm_uuid {
+                        self.deployer
+                            .aws_client
+                            .delete_event_source_mapping(uuid)
+                            .await?;
+                    }
+                    if let Some(queue_arn) = &aws.invoke_queue_arn {
+                        self.deployer.aws_client.delete_queue(queue_arn).await?;
+                    }
                     self.deployer
                         .aws_client
                         .delete_function(&AwsFunctionQualifier::new(&deployment.name, &aws.name))
@@ -89,6 +119,9 @@ impl DeployerService for DeployerServiceImpl {
                 }
                 FunctionEntity::Plugin(_plugin) => {}
             }
+        }
+        if let Some(queue_arn) = &deployment.events_queue_arn {
+            self.deployer.aws_client.delete_queue(queue_arn).await?;
         }
         Ok(())
     }
